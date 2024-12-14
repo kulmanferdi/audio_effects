@@ -12,11 +12,14 @@ function distortionSignal = customDistortion(inputSignal, gain, clipLevel, wetDr
     distortionSignal = distortionSignal / max(abs(distortionSignal));
 end
 
-[audioIn, Fs] = audioread('samples/fake-tales-of-san-francisco.mp3');
-
 gain = 3; 
 clipLevel = 0.4;
 wetDryMix = 0.78; 
-distortionSignal = customDistortion(audioIn, gain, clipLevel, wetDryMix);
 
+[audioIn, Fs] = audioread('samples/fake-tales-of-san-francisco.mp3');
+distortionSignal = customDistortion(audioIn, gain, clipLevel, wetDryMix);
 audiowrite('outputs/fake-tales-of-san-francisco-overdrive.wav', distortionSignal, Fs);
+
+[audioIn, Fs] = audioread('samples/phonk-808-bass-sustained_90bpm_G#_major.wav');
+distortionSignal = customDistortion(audioIn, gain, clipLevel, wetDryMix);
+audiowrite('outputs/phonk-808-bass-sustained_90bpm_G#_major-drive.wav', distortionSignal, Fs);

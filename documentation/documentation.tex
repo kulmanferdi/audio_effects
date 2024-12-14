@@ -1,0 +1,288 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\title{Audio effects}
+\author{Ferdinand Kulman}
+\date{December 2024}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Audio effects play a crucial role in music production, enhancing and shaping the sound to create unique textures and depth. These effects are widely used in recording studios and live performances to manipulate audio signals for artistic purposes. My task was to implement a selection of common audio effects in MATLAB, including reverb, distortion, chorus, delay, and one freely chosen effect. Each effect was created from scratch to deepen the understanding of their underlying principles and signal processing techniques.In the following sections, I will document the implementation of these effects, detailing the algorithms used, the mathematical basis behind them, and examples of their application to audio signals.
+
+\section{Reverberation Effect Implementation}
+
+\subsection{Function Overview}
+The \texttt{customReverberator} function implements a reverberation effect for audio signals using a network of comb and all-pass filters. Reverberation simulates the persistence of sound as it reflects and decays in an acoustic environment.
+
+\begin{verbatim}
+function reverbSignal =
+customReverberator(inputSignal, Fs, reverbTime, wetDryMix)
+\end{verbatim}
+
+\subsection{Input Parameters}
+The main function accepts the following input parameters:
+\begin{itemize}
+    \item \texttt{inputSignal} (array): Input audio signal.
+    \item \texttt{Fs} (scalar): The sampling frequency of the audio signal (in Hz).
+    \item \texttt{reverbTime} (scalar): The reverberation time in seconds, which determines the decay of reflections.
+    \item \texttt{wetDryMix} (scalar): The mix ratio between the processed (wet) and original (dry) signal. Valid range: $[0, 1]$.
+\end{itemize}
+
+\subsection{Output}
+The function returns the following output:
+\begin{itemize}
+    \item \texttt{reverbSignal} (array): The audio signal with the applied reverberation effect.
+\end{itemize}
+
+\subsection{Supporting Functions}
+\subsubsection{Comb Filter (\texttt{combFilter})}
+The \texttt{combFilter} function implements a simple feedback delay network used for simulating discrete echoes.
+\begin{itemize}
+    \item \texttt{input} (array): The input audio signal.
+    \item \texttt{delaySamples} (scalar): The delay length in samples.
+    \item \texttt{gain} (scalar): The feedback gain.
+    \item \texttt{output} (array): The filtered audio signal.
+\end{itemize}
+
+\subsubsection{All-Pass Filter (\texttt{allPassFilter})}
+The \texttt{allPassFilter} function implements a phase-shifting filter used to smooth the sound of the comb filter network.
+\begin{itemize}
+    \item \texttt{input} (array): The input audio signal.
+    \item \texttt{delaySamples} (scalar): The delay length in samples.
+    \item \texttt{gain} (scalar): The feedback gain.
+    \item \texttt{output} (array): The filtered audio signal.
+\end{itemize}
+
+\subsection{Algorithm Description}
+The reverberation effect is implemented as follows:
+\begin{enumerate}
+    \item Normalize the input signal to prevent clipping.
+    \item Define an array of delay times and gains for the comb filters. The gains are calculated based on the specified reverberation time using the exponential decay formula:
+    \[
+    \text{gain}_i = \exp\left(-3 \cdot \text{delay}_i / \text{reverbTime}\right).
+    \]
+    \item Process the input signal through multiple comb filters, summing the outputs.
+    \item Pass the summed output through a series of all-pass filters to smooth and diffuse the sound.
+    \item Mix the processed (wet) and original (dry) signals based on the \texttt{wetDryMix} parameter.
+    \item Normalize the final signal to ensure that it remains within the valid range.
+\end{enumerate}
+
+\subsection{Mathematical Representation}
+The output signal is computed as:
+\[
+\text{reverbSignal} = \text{wetDryMix} \cdot \text{processedSignal} + (1 - \text{wetDryMix}) \cdot \text{inputSignal}.
+\]
+
+\section{Chorus Effect Implementation}
+
+\subsection{Function Overview}
+The \texttt{customChorus} function implements a chorus effect for audio signals. The chorus effect simulates multiple slightly detuned versions of the input signal being played simultaneously, creating a rich and expansive sound.
+
+\begin{verbatim}
+function chorusSignal =
+customChorus(inputSignal, Fs, depth, rate, wetDryMix)
+\end{verbatim}
+
+\subsection{Input Parameters}
+The function accepts the following input parameters:
+\begin{itemize}
+    \item \texttt{inputSignal} (array): The input audio signal, normalized to avoid clipping.
+    \item \texttt{Fs} (scalar): The sampling frequency of the audio signal (in Hz).
+    \item \texttt{depth} (scalar): The maximum delay depth in seconds, controlling the extent of modulation.
+    \item \texttt{rate} (scalar): The low frequency oscillator (LFO) rate in Hz, determining the speed of modulation.
+    \item \texttt{wetDryMix} (scalar): The mix ratio between the processed (wet) and original (dry) signal. Valid range: $[0, 1]$.
+\end{itemize}
+
+\subsection{Output}
+The function returns the following output:
+\begin{itemize}
+    \item \texttt{chorusSignal} (array): The audio signal with the applied chorus effect.
+\end{itemize}
+
+\subsection{Algorithm Description}
+The chorus effect is implemented as follows:
+\begin{enumerate}
+    \item The input signal is normalized to prevent clipping.
+    \item The maximum delay depth is converted into samples.
+    \item A sinusoidal low-frequency oscillator (LFO) is generated to modulate the delay time.
+    \item A delay buffer is created to store the delayed samples.
+    \item For each sample in the input signal:
+    \begin{itemize}
+        \item The current delay time is determined by the LFO's output.
+        \item The delayed sample is retrieved from the buffer if sufficient samples exist; otherwise, it is set to zero.
+        \item The wet and dry signals are mixed based on the \texttt{wetDryMix} parameter.
+    \end{itemize}
+    \item The final signal is normalized to avoid clipping.
+\end{enumerate}
+
+\subsection{Mathematical Representation}
+The modulated delay time is defined as:
+\[
+\text{currentDelay}(n) = \frac{1 + \sin(2 \pi n / \text{lfoSamples})}{2} \cdot \text{depthSamples}.
+\]
+
+The final signal is computed as:
+\[
+\text{chorusSignal}(n) = \text{wetDryMix} \cdot \text{delayedSample}(n) + (1 - \text{wetDryMix}) \cdot \text{inputSignal}(n).
+\]
+
+\section{Echo Effect Implementation}
+
+\subsection{Function Overview}
+The \texttt{customDelay} function implements an echo effect for audio signals. Echo is achieved by adding delayed repetitions of the original signal, attenuated by a decay factor. This function allows customization of the delay time, decay intensity, and wet/dry mix ratio.
+
+\begin{verbatim}
+function echoSignal = customDelay(inputSignal, Fs, delayTime, decayFactor, wetDryMix)
+\end{verbatim}
+
+\subsection{Input Parameters}
+The function accepts the following input parameters:
+\begin{itemize}
+    \item \texttt{inputSignal} (array): The input audio signal, normalized to avoid clipping.
+    \item \texttt{Fs} (scalar): The sampling frequency of the audio signal (in Hz).
+    \item \texttt{delayTime} (scalar): The delay time in seconds between echoes.
+    \item \texttt{decayFactor} (scalar): The attenuation factor for each successive echo. Valid range: $[0, 1]$.
+    \item \texttt{wetDryMix} (scalar): The mix ratio between the processed (wet) and original (dry) signal. Valid range: $[0, 1]$.
+\end{itemize}
+
+\subsection{Output}
+The function returns the following output:
+\begin{itemize}
+    \item \texttt{echoSignal} (array): The audio signal with the applied echo effect.
+\end{itemize}
+
+\subsection{Algorithm Description}
+The echo effect is implemented as follows:
+\begin{enumerate}
+    \item The input signal is normalized to prevent clipping.
+    \item The delay is calculated in samples based on the specified \texttt{delayTime} and sampling frequency (\texttt{Fs}).
+    \item The output buffer is initialized with a length equal to the input signal length plus the delay.
+    \item For each sample in the input signal:
+    \begin{itemize}
+        \item The current sample is added to the output signal.
+        \item If the delay has elapsed, an attenuated copy of the delayed sample is added back to the output buffer.
+    \end{itemize}
+    \item A wet/dry mix is applied to combine the echoed signal with the original signal.
+    \item The final signal is normalized to ensure no clipping occurs.
+\end{enumerate}
+
+\subsection{Mathematical Representation}
+The echo signal is computed iteratively as:
+\[
+\text{echoSignal}[n] =
+\begin{cases}
+\text{inputSignal}[n], & \text{if } n \leq \text{delaySamples} \\
+\text{inputSignal}[n] + \text{decayFactor} \cdot \text{echoSignal}[n - \text{delaySamples}], & \text{if } n > \text{delaySamples}.
+\end{cases}
+\]
+
+The final signal is blended as:
+\[
+\text{finalEchoSignal} = \text{wetDryMix} \cdot \text{echoSignal} + (1 - \text{wetDryMix}) \cdot \text{inputSignal}.
+\]
+
+\section{Distortion Effect Implementation}
+
+\subsection{Function Overview}
+The \texttt{customDistortion} function implements a distortion effect for audio signals. Distortion introduces harmonic overtones by clipping the audio waveform at a specified threshold, which emulates the behavior of overdriven amplifiers or analog circuits.
+
+\begin{verbatim}
+function distortionSignal =
+customDistortion(inputSignal, gain, clipLevel, wetDryMix)
+\end{verbatim}
+
+\subsection{Input Parameters}
+The function accepts the following input parameters:
+\begin{itemize}
+    \item \texttt{inputSignal} (array): The input audio signal, normalized to avoid clipping.
+    \item \texttt{gain} (scalar): The gain applied to the input signal before clipping. Higher values increase distortion intensity.
+    \item \texttt{clipLevel} (scalar): The threshold for clipping the signal. Values above this level are clipped.
+    \item \texttt{wetDryMix} (scalar): The mix ratio between the processed (wet) and original (dry) signal. Valid range: $[0, 1]$.
+\end{itemize}
+
+\subsection{Output}
+The function returns the following output:
+\begin{itemize}
+    \item \texttt{distortionSignal} (array): The audio signal with the applied distortion effect.
+\end{itemize}
+
+\subsection{Algorithm Description}
+The distortion effect is implemented as follows:
+\begin{enumerate}
+    \item The input signal is normalized to avoid initial clipping.
+    \item A gain is applied to the signal to amplify it.
+    \item The signal is clipped to the specified \texttt{clipLevel}, ensuring values exceeding this threshold (positively or negatively) are limited.
+    \item The clipped signal is normalized again to ensure it stays within the valid audio range.
+    \item A wet/dry mix is applied to blend the distorted signal with the original signal.
+\end{enumerate}
+
+\subsection{Mathematical Representation}
+The clipping operation is defined as:
+\[
+\text{distorted}(n) =
+\begin{cases}
+\text{clipLevel}, & \text{if } \text{gain} \cdot \text{inputSignal}(n) > \text{clipLevel} \\
+-\text{clipLevel}, & \text{if } \text{gain} \cdot \text{inputSignal}(n) < -\text{clipLevel} \\
+\text{gain} \cdot \text{inputSignal}(n), & \text{otherwise}.
+\end{cases}
+\]
+
+The final signal is computed as:
+\[
+\text{distortionSignal} = \text{wetDryMix} \cdot \text{distorted} + (1 - \text{wetDryMix}) \cdot \text{inputSignal}.
+\]
+
+\section{Tremolo Effect Implementation}
+
+\subsection{Function Overview}
+The \texttt{customTremolo} function implements a tremolo audio effect from scratch. Tremolo is a modulation effect that varies the amplitude of the input audio signal using a low-frequency oscillator (LFO). This creates a rhythmic pulsating sound.
+
+\begin{verbatim}
+function tremoloSignal = customTremolo(inputSignal, Fs, rate, depth, wetDryMix)
+\end{verbatim}
+
+\subsection{Input Parameters}
+The function accepts the following input parameters:
+\begin{itemize}
+    \item \texttt{inputSignal} (array): The input audio signal, normalized to avoid clipping.
+    \item \texttt{Fs} (scalar): The sampling frequency of the audio signal (in Hz).
+    \item \texttt{rate} (scalar): The modulation rate of the tremolo effect (in Hz).
+    \item \texttt{depth} (scalar): The depth of modulation, determining the intensity of the effect. Valid range: $[0, 1]$.
+    \item \texttt{wetDryMix} (scalar): The mix ratio between the processed (wet) and original (dry) signal. Valid range: $[0, 1]$.
+\end{itemize}
+
+\subsection{Output}
+The function returns the following output:
+\begin{itemize}
+    \item \texttt{tremoloSignal} (array): The audio signal with the applied tremolo effect.
+\end{itemize}
+
+\subsection{Algorithm Description}
+The tremolo effect is implemented as follows:
+\begin{enumerate}
+    \item The input signal is normalized to avoid clipping.
+    \item A time vector \texttt{t} is created based on the length of the signal and the sampling frequency.
+    \item A low-frequency oscillator (LFO) is generated using a sine wave. The LFO modulates the amplitude of the signal based on the specified depth.
+    \item The input signal is multiplied by the LFO to apply the modulation.
+    \item A wet/dry mix is applied to blend the modulated signal with the original signal.
+    \item The output signal is normalized again to ensure no clipping occurs.
+\end{enumerate}
+
+\subsection{Mathematical Representation}
+The amplitude modulation is performed using the following equation:
+\[
+\text{modulated}(n) = \text{inputSignal}(n) \cdot \left[1 - \text{depth} \cdot \left(0.5 + 0.5 \cdot \sin(2 \pi \cdot \text{rate} \cdot t)\right)\right]
+\]
+where \(t\) is the time vector and \(n\) is the sample index.
+
+The final signal is computed as:
+\[
+\text{tremoloSignal} = \text{wetDryMix} \cdot \text{modulated} + (1 - \text{wetDryMix}) \cdot \text{inputSignal}
+\]
+
+\end{document}

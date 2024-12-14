@@ -7,22 +7,25 @@ function chorusSignal = customChorus(inputSignal, Fs, depth, rate, wetDryMix)
 
     chorusSignal = zeros(size(inputSignal));
     delayBuffer = zeros(depthSamples, 1); 
+    writeIndex = 1;
 
     for n = 1:length(inputSignal)
         modIndex = mod(n, lfoSamples) + 1;
         currentDelay = round((1 + lfo(modIndex)) * depthSamples / 2);
 
-        if currentDelay > 0 && n > currentDelay
-            delayedSample = inputSignal(n - currentDelay);
-        else
-            delayedSample = 0;
-        end
+        readIndex = mod(writeIndex - currentDelay - 1, depthSamples) + 1;
+        delayedSample = delayBuffer(readIndex);
+
+        delayBuffer(writeIndex) = inputSignal(n);
 
         chorusSignal(n) = wetDryMix * delayedSample + (1 - wetDryMix) * inputSignal(n);
+
+        writeIndex = mod(writeIndex, depthSamples) + 1;
     end
 
     chorusSignal = chorusSignal / max(abs(chorusSignal));
 end
+
 
 depth = 0.01; 
 rate = 0.3; 
